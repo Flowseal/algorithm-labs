@@ -61,7 +61,8 @@ int wmain( int argc, wchar_t** argv )
 	{
 		if ( ch == L'.' )
 			should_next_uppercase = true;
-		else
+
+		else if ( should_next_uppercase )
 		{
 			bool is_russian_lowercase = ch >= L'а' && ch <= L'я' || ch == L'ё';
 			bool is_russian_uppercase = ch >= L'А' && ch <= L'Я' || ch == L'Ё';
@@ -70,13 +71,13 @@ int wmain( int argc, wchar_t** argv )
 
 			if ( is_russian_lowercase || is_russian_uppercase || is_english_lowercase || is_english_uppercase )
 			{
-				if ( should_next_uppercase && is_russian_lowercase )
+				if ( is_russian_lowercase )
 					if ( ch == L'ё' )
 						ch = L'Ё';
 					else
 						ch = L'А' + (ch - L'а');
 
-				else if ( should_next_uppercase && is_english_lowercase )
+				else if ( is_english_lowercase )
 					ch = L'A' + (ch - L'a');
 
 				should_next_uppercase = false;
