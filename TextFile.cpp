@@ -5,15 +5,12 @@
 Исправить обнаруженные ошибки (6).
 
 IDE: Visual Studio 2022
-C++20
 
 Источники:
 Сигнатура wmain: https://learn.microsoft.com/en-us/cpp/c-language/using-wmain?view=msvc-170#the-wmain-function-signature
 _setmode для изменения кодировки stdout/stdin: https://learn.microsoft.com/ru-ru/cpp/c-runtime-library/reference/setmode?view=msvc-170
 Изменение локализации файловых потоков: https://www.codeproject.com/Articles/38242/Reading-UTF-8-with-C-streams
 */
-
-#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 
 #include <iostream>
 #include <windows.h>
