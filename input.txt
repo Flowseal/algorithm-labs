@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 ĞŸÑ€Ğ¸Ğ²ĞµÑ‚. Ğ¼Ğ¸Ñ€. Ñ‘Ğ»Ğ¾Ñ‡Ğ½Ñ‹Ğµ Ğ¸Ğ³Ñ€ÑƒÑˆĞºĞ¸. ĞšÑ€Ğ°ÑĞ¸Ğ²Ñ‹Ğµ ĞºĞ°Ñ€Ñ‚Ğ¸Ğ½Ñ‹. Ğ¿Ñ€ĞµĞºÑ€Ğ°ÑĞ½Ñ‹Ğ¹ Ğ¼Ğ¸Ñ€!
 Hello. world. Beatiful paintings. beatiful world!
+=======
+Hello. world. Beatiful paintings. beatiful world!
+Ïğèâåò. ìèğ. ¸ëî÷íûå èãğóøêè. Ïğåêğàñíûé ìèğ!
+>>>>>>> ae39abd (1251 codepage)

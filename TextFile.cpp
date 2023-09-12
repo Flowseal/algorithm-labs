@@ -1,9 +1,10 @@
-п»ї/*
-6. РРјРµРµС‚СЃСЏ  С‚РµРєСЃС‚РѕРІС‹Р№  С„Р°Р№Р»  СЃ  РЅРµРєРѕС‚РѕСЂС‹Рј  РѕРїРёСЃР°РЅРёРµРј.   Р’СЃРµ
-РїСЂРµРґР»РѕР¶РµРЅРёСЏ   Р·Р°РєР°РЅС‡РёРІР°СЋС‚СЃСЏ   С‚РѕС‡РєРѕР№.   РўСЂРµР±СѓРµС‚СЃСЏ   РїСЂРѕРІРµСЂРёС‚СЊ,
-СЏРІР»СЏРµС‚СЃСЏ  Р»Рё  РїРµСЂРІР°СЏ  Р±СѓРєРІР°  РєР°Р¶РґРѕРіРѕ  РїСЂРµРґР»РѕР¶РµРЅРёСЏ   РїСЂРѕРїРёСЃРЅРѕР№.
-РСЃРїСЂР°РІРёС‚СЊ РѕР±РЅР°СЂСѓР¶РµРЅРЅС‹Рµ РѕС€РёР±РєРё (6).
+/*
+6. Имеется текстовый файл с некоторым описанием. Все
+предложения заканчиваются точкой. Требуется проверить,
+является ли первая буква каждого предложения прописной.
+Исправить обнаруженные ошибки (6).
 
+<<<<<<< HEAD
 Р’С‹РїРѕР»РЅРёР»: Р’РµС‰РµРІ РђСЂС‚С‘Рј РџРЎ-21
 IDE: Visual Studio 2022
 
@@ -11,34 +12,33 @@ IDE: Visual Studio 2022
 РЎРёРіРЅР°С‚СѓСЂР° wmain: https://learn.microsoft.com/en-us/cpp/c-language/using-wmain?view=msvc-170#the-wmain-function-signature
 _setmode РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ РєРѕРґРёСЂРѕРІРєРё stdout/stdin: https://learn.microsoft.com/ru-ru/cpp/c-runtime-library/reference/setmode?view=msvc-170
 РР·РјРµРЅРµРЅРёРµ Р»РѕРєР°Р»РёР·Р°С†РёРё С„Р°Р№Р»РѕРІС‹С… РїРѕС‚РѕРєРѕРІ: https://www.codeproject.com/Articles/38242/Reading-UTF-8-with-C-streams
+=======
+Выполнил: Вещев Артём ПС-21
+IDE: Visual Studio 2022
+>>>>>>> ae39abd (1251 codepage)
 */
 
 #include <iostream>
-#include <windows.h>
 #include <fstream>
-#include <codecvt>
-#include <io.h>
-#include <fcntl.h>
+#include <Windows.h>
 
-int wmain( int argc, wchar_t** argv )
+int main( int argc, char** argv )
 {
-	// РњРµРЅСЏРµРј СЂРµР¶РёРј stdout/stdin РЅР° UTF-8 Р±РµР· BOM
-	_setmode( _fileno( stdout ), _O_U8TEXT );
-	_setmode( _fileno( stdin ), _O_U8TEXT );
+	// Меняем codepage вывода/ввода терминала на Cyrillic Windows (1251)
+	SetConsoleOutputCP( 1251 );
+	SetConsoleCP( 1251 );
 
-	// РЎРѕР·РґР°С‘Рј utf8 Р»РѕРєР°Р»РёР·Р°С†РёСЋ, РєРѕС‚РѕСЂСѓСЋ РёСЃРїРѕР»СЊР·СѓРµРј РєР°Рє РіР»РѕР±Р°Р»СЊРЅСѓСЋ. РР·РјРµРЅРµРЅРёРµ РіР»РѕР±Р°Р»СЊРЅРѕР№ Р»РѕРєР°Р»РёР·Р°С†РёРё РґР°С‘С‚ РЅР°Рј РІРѕР·РјРѕР¶РЅРѕСЃС‚СЊ РЅРµ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ `imbue` РґР»СЏ СЃРјРµРЅСЏ Р»РѕРєР°Р»РёР·Р°С†РёРё РєР°Р¶РґРѕРіРѕ С„Р°Р№Р»РѕРіРѕ РїРѕС‚РѕРєР°.
-	std::locale utf8_locale( std::locale( std::locale::empty( ), new std::codecvt_utf8<wchar_t> ) );
-	std::locale::global( utf8_locale );
-
-	// Р•СЃР»Рё РјС‹ РїРµСЂРµРґР°Р»Рё 2 РёР»Рё Р±РѕР»РµРµ 3 Р°СЂРіСѓРјРµРЅС‚РѕРІ, С‚Рѕ СЌС‚Рѕ РЅРµРїСЂР°РІРёР»СЊРЅРѕРµ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ РїСЂРѕРіСЂР°РјРјС‹
+	// Если мы передаём 2 или более 3 аргументов, то это неправильное использование программы
 	if ( argc != 1 && argc != 3 )
 	{
-		std::wcout << L"РћС€РёР±РєР°! Р’РІРµРґРёС‚Рµ РёРјРµРЅР° РІС…РѕРґРЅРѕРіРѕ Рё РІС‹С…РѕРґРЅРѕРіРѕ С„Р°Р№Р»РѕРІ, Р»РёР±Рѕ Р·Р°РїСѓСЃС‚РёС‚Рµ РїСЂРѕРіСЂР°РјРјСѓ Р±РµР· Р°СЂРіСѓРјРµРЅС‚РѕРІ, С‡С‚РѕР±С‹ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РёРјРµРЅР° РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ (input.txt | output.txt)" << std::endl;
+		std::cout << "Использование:" << std::endl;
+		std::cout << argv[ 0 ] << "(без доп. аргументов будут использованы стандартные имена файлов: input.txt/output.txt)" << std::endl;
+		std::cout << argv[ 0 ] << " input_file.txt output_file.txt" << std::endl;
 		return 1;
 	}
 
-	std::wstring input_file_name( L"input.txt" );
-	std::wstring output_file_name( L"output.txt" );
+	std::string input_file_name( "input.txt" );
+	std::string output_file_name( "output.txt" );
 
 	if ( argc > 1 )
 	{
@@ -46,46 +46,46 @@ int wmain( int argc, wchar_t** argv )
 		output_file_name = argv[ 2 ];
 	}
 
-	std::wifstream input( input_file_name );
-	std::wofstream output( output_file_name );
+	std::ifstream input( input_file_name );
+	std::ofstream output( output_file_name );
 
 	if ( !input )
 	{
-		std::wcout << L"РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РІС…РѕРґРЅРѕР№ С„Р°Р№Р»" << std::endl;
+		std::cout << "Не удалось открыть входной файл" << std::endl;
 		return 1;
 	}
 
 	if ( !output )
 	{
-		std::wcout << L"РќРµ СѓРґР°Р»РѕСЃСЊ РѕС‚РєСЂС‹С‚СЊ РІС‹С…РѕРґРЅРѕР№ С„Р°Р№Р»" << std::endl;
+		std::cout << "Не удалось открыть выходной файл" << std::endl;
 		return 1;
 	}
 
 	bool should_next_uppercase = true;
-	wchar_t ch;
+	char ch;
 
 	while ( input.get( ch ) )
 	{
-		if ( ch == L'.' )
+		if ( ch == '.' )
 			should_next_uppercase = true;
 
 		else if ( should_next_uppercase )
 		{
-			bool is_russian_lowercase = ch >= L'Р°' && ch <= L'СЏ' || ch == L'С‘';
-			bool is_russian_uppercase = ch >= L'Рђ' && ch <= L'РЇ' || ch == L'РЃ';
-			bool is_english_lowercase = ch >= L'a' && ch <= L'z';
-			bool is_english_uppercase = ch >= L'A' && ch <= L'Z';
+			bool is_russian_lowercase = ch >= 'а' && ch <= 'я' || ch == 'ё';
+			bool is_russian_uppercase = ch >= 'А' && ch <= 'Я' || ch == 'Ё';
+			bool is_english_lowercase = ch >= 'a' && ch <= 'z';
+			bool is_english_uppercase = ch >= 'A' && ch <= 'Z';
 
 			if ( is_russian_lowercase || is_russian_uppercase || is_english_lowercase || is_english_uppercase )
 			{
 				if ( is_russian_lowercase )
-					if ( ch == L'С‘' )
-						ch = L'РЃ';
+					if ( ch == 'ё' )
+						ch = 'Ё';
 					else
-						ch = L'Рђ' + (ch - L'Р°');
+						ch = 'А' + (ch - 'а');
 
 				else if ( is_english_lowercase )
-					ch = L'A' + (ch - L'a');
+					ch = 'A' + (ch - 'a');
 
 				should_next_uppercase = false;
 			}
@@ -93,4 +93,6 @@ int wmain( int argc, wchar_t** argv )
 
 		output << ch;
 	}
+
+	return 0;
 }
