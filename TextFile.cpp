@@ -4,18 +4,9 @@
 является ли первая буква каждого предложения прописной.
 Исправить обнаруженные ошибки (6).
 
-<<<<<<< HEAD
-Р’С‹РїРѕР»РЅРёР»: Р’РµС‰РµРІ РђСЂС‚С‘Рј РџРЎ-21
-IDE: Visual Studio 2022
-
-РСЃС‚РѕС‡РЅРёРєРё:
-РЎРёРіРЅР°С‚СѓСЂР° wmain: https://learn.microsoft.com/en-us/cpp/c-language/using-wmain?view=msvc-170#the-wmain-function-signature
-_setmode РґР»СЏ РёР·РјРµРЅРµРЅРёСЏ РєРѕРґРёСЂРѕРІРєРё stdout/stdin: https://learn.microsoft.com/ru-ru/cpp/c-runtime-library/reference/setmode?view=msvc-170
-РР·РјРµРЅРµРЅРёРµ Р»РѕРєР°Р»РёР·Р°С†РёРё С„Р°Р№Р»РѕРІС‹С… РїРѕС‚РѕРєРѕРІ: https://www.codeproject.com/Articles/38242/Reading-UTF-8-with-C-streams
-=======
 Выполнил: Вещев Артём ПС-21
 IDE: Visual Studio 2022
->>>>>>> ae39abd (1251 codepage)
+C++20
 */
 
 #include <iostream>
@@ -62,6 +53,7 @@ int main( int argc, char** argv )
 	}
 
 	bool should_next_uppercase = true;
+	int errors_found = 0;
 	char ch;
 
 	while ( input.get( ch ) )
@@ -78,6 +70,9 @@ int main( int argc, char** argv )
 
 			if ( is_russian_lowercase || is_russian_uppercase || is_english_lowercase || is_english_uppercase )
 			{
+				if ( is_russian_lowercase || is_english_lowercase )
+					errors_found += 1;
+
 				if ( is_russian_lowercase )
 					if ( ch == 'ё' )
 						ch = 'Ё';
@@ -94,5 +89,6 @@ int main( int argc, char** argv )
 		output << ch;
 	}
 
+	std::cout << "Ошибок во входном файле: " << errors_found << std::endl;
 	return 0;
 }
