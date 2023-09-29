@@ -20,42 +20,204 @@ C++20
 #include <iostream>
 #include <fstream>
 #include <Windows.h>
+#include <map>
+#include <string>
 
-struct Node {
-    std::string node_name;
-    Node* g;
+std::map<std::string, int> ram_sizes;
+
+struct Procedure {
+	std::string name;
+	Procedure* next;
+
+	Procedure( std::string name, Procedure* next ) : name( name ), next( next ) {}
 };
 
-int main()
+struct Stack {
+	Procedure* top = nullptr;
+
+	bool is_empty( ) { return top == nullptr; };
+
+	void push( std::string procedure )
+	{
+		top = new Procedure( procedure, top );
+	}
+
+	std::string pop( )
+	{
+		if ( is_empty( ) )
+			return "";
+
+		Procedure* next_top = top->next;
+		std::string to_return = top->name;
+
+		delete top;
+		top = next_top;
+		return to_return;
+	}
+
+	void clear( )
+	{
+		while ( !is_empty( ) )
+		{
+			pop( );
+		}
+	}
+
+	bool find( std::string to_search )
+	{
+		Stack copied_stack = copy_reverse( );
+		bool found = false;
+
+		while ( !found && !copied_stack.is_empty( ) )
+		{
+			found = to_search == copied_stack.pop( );
+		}
+
+		copied_stack.clear( );
+		return found;
+	}
+
+	Stack copy_reverse( )
+	{
+		Stack new_stack;
+
+		if ( is_empty() )
+			return new_stack;
+
+		Procedure* copied_current_top = new Procedure( top->name, top->next );
+
+		while ( copied_current_top != nullptr )
+		{
+			new_stack.push( copied_current_top->name );
+			copied_current_top = copied_current_top->next;
+		}
+
+		delete copied_current_top;
+		return new_stack;
+	}
+};
+
+int get_procedure_size( std::string name )
 {
-    SetConsoleCP( 1251 );
-    SetConsoleOutputCP( 1251 );
+	auto it = ram_sizes.find( name );
+	if ( it == ram_sizes.end( ) )
+		return -1;
 
-    std::ifstream input_sizes( "input_sizes.txt" );
-    std::ifstream input_stack( "input_stack.txt" );
-    std::ofstream output( "output.txt" );
+	return it->second;
+}
 
-    if ( !input_sizes )
-    {
-        std::cout << "Не удалось открыть файл input_sizes.txt" << std::endl;
-        return 1;
-    }
+void process_trace( Stack stack )
+{
+	Stack current_trace;
+	Stack max_size_trace;
 
-    if ( !input_stack )
-    {
-        std::cout << "Не удалось открыть файл input_stack.txt" << std::endl;
-        return 1;
-    }
+	int max_ram_size = 0;
+	int curr_ram_size = 0;
 
-    if ( !output )
-    {
-        std::cout << "Не удалось открыть файл output.txt" << std::endl;
-        return 1;
-    }
+	Procedure* curr = stack.top;
 
-    std::string word;
-    while ( input_stack >> word )
-    {
-        std::cout << word << std::endl;
-    }
+	while ( curr != nullptr )
+	{
+		if ( current_trace.find( curr->name ) )
+		{
+			if ( curr->name == current_trace.top->name )
+			{
+				std::cout << "Wrong traceback: `" << curr->name << "` recursive called" << std::endl;
+			}
+
+			curr_ram_size -= get_procedure_size( current_trace.pop( ) );
+
+			if ( curr->name != current_trace.top->name )
+			{
+				std::cout << "Wrong traceback: `" << current_trace.top->name << "` not returned" << std::endl;
+			}
+		}
+		else
+		{
+			current_trace.push( curr->name );
+			curr_ram_size += get_procedure_size( curr->name );
+		}
+
+		curr = curr->next;
+		if ( curr_ram_size > max_ram_size )
+		{
+			max_ram_size = curr_ram_size;
+			max_size_trace.clear( );
+			max_size_trace = current_trace.copy_reverse();
+		}
+	}
+
+	std::cout << "Needed ram size: " << max_ram_size << std::endl;
+	std::cout << "Maximum traceback:" << std::endl;
+
+	Procedure* max_trace_top = max_size_trace.top;
+	while ( max_trace_top != nullptr )
+	{
+		std::cout << max_trace_top->name << std::endl;
+		max_trace_top = max_trace_top->next;
+	}
+
+	current_trace.clear( );
+	delete max_trace_top, curr;
+}
+
+bool init_ram_sizes( std::ifstream& stream )
+{
+	std::string procedure_name;
+	std::string procedure_size;
+
+	while ( stream >> procedure_name )
+	{
+		if ( !(stream >> procedure_size) )
+			return false;
+
+		if ( get_procedure_size( procedure_name ) != -1 )
+			return false;
+
+		ram_sizes.try_emplace( procedure_name, std::stoi( procedure_size ) );
+	}
+}
+
+int main( )
+{
+	SetConsoleCP( 1251 );
+	SetConsoleOutputCP( 1251 );
+
+	std::ifstream input_sizes( "input_sizes.txt" );
+	std::ifstream input_trace( "input_trace.txt" );
+	std::ofstream output( "output.txt" );
+
+	if ( !input_sizes )
+	{
+		std::cout << "Не удалось открыть файл input_sizes.txt" << std::endl;
+		return 1;
+	}
+
+	if ( !input_trace )
+	{
+		std::cout << "Не удалось открыть файл input_trace.txt" << std::endl;
+		return 1;
+	}
+
+	if ( !output )
+	{
+		std::cout << "Не удалось открыть файл output.txt" << std::endl;
+		return 1;
+	}
+
+	if ( !init_ram_sizes( input_sizes ) )
+	{
+		std::cout << "Ошибка при прочтении файла input_sizes.txt" << std::endl;
+		return 1;
+	}
+
+	Stack stack;
+	std::string procedure_name;
+
+	while ( input_trace >> procedure_name )
+	{
+		stack.push( procedure_name );
+	}
+
+	process_trace( stack );
 }

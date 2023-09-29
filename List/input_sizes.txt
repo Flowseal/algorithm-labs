@@ -1,0 +1,7 @@
+main 120
+sort 30
+first 15
+add 25
+delete 20
+all_delete 40
+second 17
