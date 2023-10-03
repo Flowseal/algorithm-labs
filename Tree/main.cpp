@@ -24,7 +24,20 @@ C++20
 #include <string>
 #include <vector>
 
+std::map<std::string, std::string> nested_procedures;
 std::map<std::string, int> ram_sizes;
+
+std::string get_nested_procedure( std::string father, std::string name )
+{
+	auto it = nested_procedures.find( name );
+	if ( it == nested_procedures.end( ) )
+	{
+		nested_procedures.try_emplace( name, father );
+		return father;
+	}
+
+	return it->second;
+}
 
 int get_procedure_size( std::string name )
 {
@@ -50,6 +63,8 @@ bool init_ram_sizes( std::ifstream& stream )
 
 		ram_sizes.try_emplace( procedure_name, std::stoi( procedure_size ) );
 	}
+
+	return true;
 }
 
 struct TreeNode {
@@ -72,7 +87,7 @@ bool is_procedure_exist( TreeNode* tree, std::string name )
 	return false;
 }
 
-void process_trace( std::ifstream& stream )
+void process_trace( std::ifstream& stream, std::ofstream& output )
 {
 	std::string procedure_name = "";
 	TreeNode* prev_tree = nullptr;
@@ -101,19 +116,39 @@ void process_trace( std::ifstream& stream )
 				return;
 			}
 
-			current_ram_size -= get_procedure_size( tree_node->name );
-			current_ram_size -= get_procedure_size( tree_node->father->name );
+			int procedure_size = get_procedure_size( tree_node->father->name );
+			if ( procedure_size == -1 )
+			{
+				std::cout << "Не найден размер для процедуры: `" << tree_node->father->name << "`" << std::endl;
+				return;
+			}
+
+			current_ram_size -= procedure_size;
 			prev_tree = tree_node->father->father;
 		}
 
 		// Идём на следующий уровень
 		else
 		{
+			if ( tree_node->father != nullptr && get_nested_procedure( tree_node->father->name, tree_node->name ) != tree_node->father->name )
+			{
+				std::cout << "Wrong trace: `" << tree_node->name << "` nested from other procedure" << std::endl;
+				return;
+			}
+
 			// Добавляем текущий узел в список детей отцовского узла, если это не первый уровень
 			if ( tree_node->father != nullptr )
 				tree_node->father->children.push_back( tree_node );
 
-			current_ram_size += get_procedure_size( tree_node->name );
+			int procedure_size = get_procedure_size( tree_node->name );
+			if ( procedure_size == -1 )
+			{
+				std::cout << "Не найден размер для процедуры: `" << tree_node->name << "`" << std::endl;
+				return;
+			}
+
+			current_ram_size += procedure_size;
+
 			if ( current_ram_size > max_ram_size )
 			{
 				max_ram_size = current_ram_size;
@@ -144,10 +179,15 @@ void process_trace( std::ifstream& stream )
 	}
 
 	std::cout << "Необходимо памяти: " << max_ram_size << std::endl;
+	output << "Необходимо памяти: " << max_ram_size << std::endl;
 	std::cout << "Тrace, который займёт больше всего памяти:" << std::endl;
+	output << "Тrace, который займёт больше всего памяти:" << std::endl;
 
-	for (int i = max_ram_trace.size() - 1; i >= 0; i--)
+	for ( int i = max_ram_trace.size( ) - 1; i >= 0; i-- )
+	{
 		std::cout << max_ram_trace.at( i ) << std::endl;
+		output << max_ram_trace.at( i ) << std::endl;
+	}
 }
 
 int main( )
@@ -183,5 +223,5 @@ int main( )
 		return 1;
 	}
 
-	process_trace( input_trace );
+	process_trace( input_trace, output );
 }

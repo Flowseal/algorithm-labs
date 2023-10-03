@@ -1,4 +1,3 @@
 ﻿  main.cpp
-D:\School\algorithm-labs\Tree\main.cpp(149,2): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
-D:\School\algorithm-labs\Tree\main.cpp(53): warning C4715: 'init_ram_sizes': not all control paths return a value
-  Tree.vcxproj -> D:\School\algorithm-labs\Tree\x64\Debug\Tree.exe
+D:\algorithm-labs\Tree\main.cpp(188,2): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Tree.vcxproj -> D:\algorithm-labs\Tree\x64\Debug\Tree.exe
