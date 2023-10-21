@@ -8,8 +8,6 @@
 выражение в инфиксной форме со  скобками. Запросить в  диалоге
 значения переменных и определить результат вычисления выражения. (11).
 
-((-(((a1*bar)+c)))-((sin(dors))-e))
-
 Выполнил: Вещев Артём ПС-21
 IDE: Visual Studio 2022
 C++20
@@ -41,6 +39,20 @@ std::string str_to_lower( std::string str )
 		[]( unsigned char c ) { return std::tolower( c ); } );
 
 	return str;
+}
+
+bool is_binary( std::string name )
+{
+	static const std::string binaries [] = { "*", "/" };
+
+	// lowercase
+	name = str_to_lower( name );
+
+	for ( int i = 0; i < sizeof( binaries ) / sizeof( binaries[ 0 ] ); i++ )
+		if ( binaries[ i ] == name )
+			return true;
+
+	return false;
 }
 
 bool is_unary( std::string name )
@@ -109,7 +121,6 @@ bool init_tree( TreeNode* tree, std::ifstream& input )
 		TreeNode* new_tree = new TreeNode;
 		new_tree->level = level;
 		new_tree->name = str;
-		new_tree->father = prev_tree;
 
 		// Новый ребёнок
 		if ( level > prev_tree->level )
@@ -134,9 +145,24 @@ bool init_tree( TreeNode* tree, std::ifstream& input )
 		{
 			if ( level < prev_tree->level )	// Возвращаемся назад для поиска нужного узла
 			{ 
+				// Если прошлый узел кончается не переменной
+				if ( !is_variable( prev_tree->name ) )
+				{
+					std::cout << "Ошибка! Узел кончился " << prev_tree->name << ", а ожидалась переменная" << std::endl;
+					return false;
+				}
+
+				// Если прошлый узел - переменная бинарной операции, у которой не хватает операндов
+				if ( prev_tree->father && is_binary( prev_tree->father->name ) && (prev_tree->father->left == nullptr || prev_tree->father->right == nullptr) )
+				{
+					std::cout << "Ошибка! У бинарной операции " << prev_tree->father->name << " не хватает операндов" << std::endl;
+					return false;
+				}
+
 				while ( level <= prev_tree->level )
 					prev_tree = prev_tree->father;
 			
+				new_tree->father = prev_tree;
 			}
 			else // Подряд заполняем второго ребенка
 			{
@@ -154,7 +180,7 @@ bool init_tree( TreeNode* tree, std::ifstream& input )
 
 		prev_tree = new_tree;
 
-		// Еслифункция является унарной, но у нас несколько детей
+		// Если функция является унарной, но у нас несколько детей
 		if ( is_unary( new_tree->father->name ) && new_tree->father->right )
 		{
 			std::cout << "Ошибка! У унарной операции " << prev_tree->name << " несколько операндов" << std::endl;
@@ -199,13 +225,6 @@ double result_tree( TreeNode* tree, std::string& preview )
 {
 	if ( !tree )
 		return 0;
-
-	// Если узел кончается не переменной
-	if ( tree->left == nullptr && tree->right == nullptr && !is_variable( tree->name ) )
-	{
-		std::cout << "Ошибка! Неправильный синтаксис" << std::endl;
-		return -1;
-	}
 
 	bool is_unary_operation = !is_variable( tree->name ) && tree->right == nullptr;
 	double left_value = 0.F;
