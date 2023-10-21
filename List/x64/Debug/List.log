@@ -1,3 +1,0 @@
-﻿  List.cpp
-D:\algorithm-labs\List\List.cpp(178): warning C4715: 'init_ram_sizes': not all control paths return a value
-  List.vcxproj -> D:\algorithm-labs\List\x64\Debug\List.exe

@@ -1,0 +1,3 @@
+D:\School\algorithm-labs\Tree\x64\Debug\Tree.exe
+D:\algorithm-labs\Tree\x64\Debug\Tree.exe
+D:\School\algorithm-labs\x64\Debug\Tree.exe
