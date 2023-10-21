@@ -1,4 +1,0 @@
-﻿  main.cpp
-D:\School\algorithm-labs\main.cpp(98,13): warning C4244: 'initializing': conversion from '__int64' to 'int', possible loss of data
-D:\School\algorithm-labs\main.cpp(196): warning C4715: 'calculate': not all control paths return a value
-  Tree.vcxproj -> D:\School\algorithm-labs\x64\Debug\Tree.exe
