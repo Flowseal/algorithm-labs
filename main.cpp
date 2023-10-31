@@ -1,14 +1,16 @@
 /*
-16. В  листьях  бинарного  дерева  указаны   идентификаторы
-переменных,  в других вершинах - знаки арифметических операций
-или функции SIN,  COS, TG, CTG, LOG, EXP. Возможны одноместные
-операции типа '+' или '-'. В этом случае требуется только один
-операнд.    Значения    переменных     известны.     Проверить
-синтаксическую  правильность идентификаторов.  Выдать на экран
-выражение в инфиксной форме со  скобками. Запросить в  диалоге
-значения переменных и определить результат вычисления выражения. (11).
-
-((-(((a1*bar)+c)))-((sin(dors))-e))
+19. Проект научно-технической  программы  задан  с  помощью
+ориентированного графа. Вершина графа соответствует отдельному
+исследованию,  а  дуги   показывают   очередность   выполнения
+исследований  (каждое  исследование  может  начаться  не ранее
+окончания  предшествующих   исследований).   Продолжительность
+каждого исследования известна. Требуется:
+   1) проверить граф на отсутствие циклов;
+   2) используя топологическую сортировку, найти путь наибольшей
+	  трудоемкости (10).
+   Путем считается  последовательность  работ,  которые должны
+выполняться друг за  другом.  Трудоемкость  пути  -  суммарная
+продолжительность работ на этом пути (10).
 
 Выполнил: Вещев Артём ПС-21
 IDE: Visual Studio 2022
@@ -17,241 +19,168 @@ C++20
 
 #include <iostream>
 #include <fstream>
-#include <algorithm>
 #include <Windows.h>
 #include <map>
 #include <string>
-#include <cmath>
+#include <vector>
+#include <sstream>
 
-std::map<std::string, double> variables;
+std::map<int, std::string> indices;
+struct Top;
+struct Link;
 
-struct TreeNode {
-	std::string name = "";
-	double value = 0.f;
-	int level = 0;
-
-	TreeNode* father = nullptr;
-	TreeNode* left = nullptr;
-	TreeNode* right = nullptr;
+struct Top {
+	std::string name;
+	std::vector<Link*> links; // связи, которые выходят из узла
 };
 
-std::string str_to_lower( std::string str )
+struct Link {
+	Top* top;
+	int time;
+};
+
+bool is_study_exist( std::string study )
 {
-	std::transform( str.begin( ), str.end( ), str.begin( ),
-		[]( unsigned char c ) { return std::tolower( c ); } );
-
-	return str;
-}
-
-bool is_unary( std::string name )
-{
-	static const std::string unaries [] = { "sin", "cos", "tg", "ctg", "log", "exp" };
-
-	// lowercase
-	name = str_to_lower( name );
-
-	for ( int i = 0; i < sizeof( unaries ) / sizeof( unaries[ 0 ] ); i++ )
-		if ( unaries[ i ] == name )
+	for ( auto it = indices.begin( ); it != indices.end( ); ++it )
+		if ( it->second == study )
 			return true;
-
 	return false;
 }
 
-bool is_variable( std::string name )
+int study_to_index( std::string study )
 {
-	static const std::string not_vars[] = { "sin", "cos", "tg", "ctg", "log", "exp", "*", "/", "-", "+" };
+	static int next_index = 0;
 
-	// lowercase
-	name = str_to_lower( name );
+	for ( auto it = indices.begin( ); it != indices.end( ); ++it )
+		if ( it->second == study )
+			return it->first;
 
-	for ( int i = 0; i < sizeof( not_vars ) / sizeof( not_vars[0]); i++ )
-		if ( not_vars[i] == name )
-			return false;
+	indices.try_emplace( next_index, study );
+	next_index += 1;
 
-	return true;
+	return next_index - 1;
 }
 
-double get_or_create_variable( std::string name )
+std::vector<std::string> split_string( std::string str, std::string delimetr )
 {
-	auto it = variables.find( name );
-	if ( it == variables.end( ) ) // переменной не существует - создаём
+	std::string word = "";
+	std::vector<std::string> parts;
+
+	while ( str.compare( word ) != 0 )
 	{
-		double value = 0.F;
+		auto index = str.find_first_of( delimetr );
+		word = str.substr( 0, index );
 
-		std::cout << "Введите значение переменной " << name << ": ";
-		std::cin >> value;
-		variables.emplace( name, value );
+		str = str.substr( index + 1, str.length( ) );
 
-		return value;
-	}
-
-	return it->second;
-}
-
-bool init_tree( TreeNode* tree, std::ifstream& input )
-{
-	std::string str;
-	TreeNode* prev_tree = tree;
-
-	while ( input >> str )
-	{
-		int level = std::count( str.begin(), str.end(), '.' );
-		str.erase( 0, level );
-
-		// Самый верх дерева
-		if ( level == 0 )
-		{
-			tree->name = str;
-			tree->level = 0;
+		if ( word.length( ) == 0 ) {
 			continue;
 		}
 
-		TreeNode* new_tree = new TreeNode;
-		new_tree->level = level;
-		new_tree->name = str;
-		new_tree->father = prev_tree;
-
-		// Новый ребёнок
-		if ( level > prev_tree->level )
-		{
-			new_tree->father = prev_tree;
-			
-			if ( prev_tree->left == nullptr )
-			{
-				prev_tree->left = new_tree;
-			}
-			else if ( prev_tree->right == nullptr )
-			{
-				prev_tree->right = new_tree;
-			}
-			else
-			{
-				std::cout << "Ошибка! Найдено более 2 детей." << std::endl;
-				return false;
-			}
-		}
-		else
-		{
-			if ( level < prev_tree->level )	// Возвращаемся назад для поиска нужного узла
-			{ 
-				while ( level <= prev_tree->level )
-					prev_tree = prev_tree->father;
-			
-			}
-			else // Подряд заполняем второго ребенка
-			{
-				new_tree->father = prev_tree->father;
-			}
-
-			if ( new_tree->father->right != nullptr )
-			{
-				std::cout << "Ошибка! Найдено более 2 детей." << std::endl;
-				return false;
-			}
-
-			new_tree->father->right = new_tree;
-		}
-
-		prev_tree = new_tree;
-
-		// Еслифункция является унарной, но у нас несколько детей
-		if ( is_unary( new_tree->father->name ) && new_tree->father->right )
-		{
-			std::cout << "Ошибка! У унарной операции " << prev_tree->name << " несколько операндов" << std::endl;
-			return false;
-		}
-
-		// Если это переменная - то спрашиваем у юзера её значение
-		if ( is_variable( str ) )
-			new_tree->value = get_or_create_variable( str );
+		parts.push_back( word );
 	}
 
+	return parts;
+}
+
+bool topological_sort_visit( int top_index, bool visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph, std::vector<int>& recurse_history )
+{
+	bool no_cycles = true;
+	visited[ top_index ] = true;
+	recurse_history.push_back( top_index );
+
+	for ( int i = 0; i < graph.at( top_index )->links.size( ); i++ )
+	{
+		int link_top_index = study_to_index( graph.at( top_index )->links.at(i)->top->name );
+
+		if ( !visited[ link_top_index ] )
+			no_cycles = no_cycles && topological_sort_visit( link_top_index, visited, graph, sorted_graph, recurse_history );
+
+		else if ( std::find( recurse_history.begin(), recurse_history.end(), link_top_index ) != recurse_history.end() )
+		{
+			std::cout << "Найден цикл: " << graph.at( top_index )->name << " -> " << graph.at(link_top_index)->name << std::endl;
+			return false;
+		}
+	}
+
+	sorted_graph.push_back( graph.at( top_index ) );
+	return no_cycles;
+}
+
+bool topological_sort( std::vector<Top*> graph, std::vector<Top*>& sorted_graph )
+{
+	// Создаём массив посещённых вершин
+	bool* visited = new bool[ graph.size( ) ];
+	for ( int i = 0; i < graph.size( ); i++ )
+		visited[ i ] = false;
+
+	// Для каждой непосещённой вершины проходимся по ней и её связям
+	for ( int i = 0; i < graph.size( ); i++ )
+		if ( !visited[ i ] )
+		{
+			// Для выявления циклов будем хранить историю текущей рекурсии
+			std::vector<int> recurse_history;
+
+			if ( !topological_sort_visit( i, visited, graph, sorted_graph, recurse_history ) )
+				return false;
+		}
+
+	std::reverse( sorted_graph.begin( ), sorted_graph.end( ) );
 	return true;
 }
 
-double calculate( std::string name, double left, double right )
+bool init_graph( std::vector<Top*>& graph, std::ifstream& input )
 {
-	name = str_to_lower( name );
+	std::string raw_string;
 
-	if ( name == "sin" )
-		return sin( right );
-	else if ( name == "cos" )
-		return cos( right );
-	else if ( name == "tg" )
-		return tan( right );
-	else if ( name == "ctg" )
-		return 1 / tan( right );
-	else if ( name == "log" )
-		return log( right );
-	else if ( name == "exp" )
-		return exp( right );
-	else if ( name == "*" )
-		return left * right;
-	else if ( name == "/" )
-		return left / right;
-	else if ( name == "-" )
-		return left - right;
-	else if ( name == "+" )
-		return left + right;
-}
-
-double result_tree( TreeNode* tree, std::string& preview )
-{
-	if ( !tree )
-		return 0;
-
-	// Если узел кончается не переменной
-	if ( tree->left == nullptr && tree->right == nullptr && !is_variable( tree->name ) )
+	while ( getline(input, raw_string) )
 	{
-		std::cout << "Ошибка! Неправильный синтаксис" << std::endl;
-		return -1;
-	}
+		std::vector<std::string> string_parts = split_string(raw_string, "|");
 
-	bool is_unary_operation = !is_variable( tree->name ) && tree->right == nullptr;
-	double left_value = 0.F;
-	double right_value = 0.F;
-
-	// Меняем местами узлы детей для унарных операций
-	if ( is_unary_operation )
-	{
-		tree->right = tree->left;
-		tree->left = new TreeNode;
-	}
-
-	{
-		if ( !is_variable( tree->name ) )
-			preview += "(";
-
-		// Обрабатываем левую ветку
+		if ( string_parts.size( ) != 3 )
 		{
-			left_value = result_tree( tree->left, preview );
+			std::cout << "Ошибка в строке: " << raw_string << ". Найдено более или менее двух делиметров '|'." << std::endl;
+			return false;
 		}
 
-		// Выводим текущий узел
-		{
-			preview += tree->name;
+		int link_time = 0;
+		std::string raw_link_time = string_parts.at( 1 );
+		raw_link_time.erase( std::remove_if( raw_link_time.begin( ), raw_link_time.end( ), isspace ), raw_link_time.end( ) );
+
+		try {
+			link_time = std::stoi( raw_link_time );
+		}
+		catch ( ... ) {
+			std::cout << "Ошибка при конвертации " << string_parts.at( 1 ) << " в число!" << std::endl;
+			return false;
 		}
 
-		// Обрабатываем правую ветку
-		{
-			if ( is_unary_operation )
-				preview += "(";
-	
-			right_value = result_tree( tree->right, preview );
+		std::string top1_name = string_parts.at( 0 );
+		std::string top2_name = string_parts.at( 2 );
 
-			if ( is_unary_operation )
-				preview += ")";
+		if ( !is_study_exist( top1_name ) )
+		{
+			Top* top1 = new Top;
+			top1->name = top1_name;
+			graph.push_back( top1 );
 		}
 
-		if ( !is_variable( tree->name ) )
-			preview += ")";
+		if ( !is_study_exist( top2_name ) )
+		{
+			Top* top2 = new Top;
+			top2->name = top2_name;
+			graph.push_back( top2 );
+		}
+
+		int top1_index = study_to_index( top1_name );
+		int top2_index = study_to_index( top2_name );
+
+		Link* link = new Link;
+		link->top = graph.at( top2_index );
+		link->time = link_time;
+
+		graph.at( top1_index )->links.push_back( link );
 	}
-
-	// Возвращаем значение текущего узла
-	if ( is_variable( tree->name ) )
-		return tree->value;
-	else
-		return calculate( tree->name, left_value, right_value );
 }
 
 int main( )
@@ -274,17 +203,21 @@ int main( )
 		return 1;
 	}
 
-	TreeNode* tree = new TreeNode;
+	std::vector<Top*> graph;
+	std::vector<Top*> sorted_graph;
 
-	if (init_tree( tree, input ))
+	if ( !init_graph( graph, input ) )
 	{
-		std::string preview = "";
-		double result = result_tree( tree, preview );
+		return 1;
+	}
 
-		std::cout << preview << std::endl;
-		output << preview << std::endl;
+	if ( !topological_sort( graph, sorted_graph ) )
+	{
+		return 1;
+	}
 
-		std::cout << "Результат вычислений: " << result << std::endl;
-		output << "Результат вычислений: " << result << std::endl;
+	for ( int i = 0; i < sorted_graph.size( ); i++ )
+	{
+		std::cout << sorted_graph.at( i )->name << std::endl;
 	}
 }
