@@ -12,6 +12,9 @@
 выполняться друг за  другом.  Трудоемкость  пути  -  суммарная
 продолжительность работ на этом пути (10).
 
+Формат ввода:
+Вершина 1|Стоимость|Вершина 2
+
 Выполнил: Вещев Артём ПС-21
 IDE: Visual Studio 2022
 C++20
@@ -78,11 +81,9 @@ std::vector<std::string> split_string( std::string str, char delimetr )
 	return string_parts;
 }
 
-bool topological_sort_visit( int top_index, bool visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph, std::vector<int>& history )
+bool topological_sort_visit( int top_index, int visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph )
 {
-	bool no_cycles = true;
-	visited[ top_index ] = true;
-	history.push_back( top_index );
+	visited[ top_index ] = 1;
 
 	for ( int i = 0; i < graph.at( top_index )->links.size( ); i++ )
 	{
@@ -90,38 +91,37 @@ bool topological_sort_visit( int top_index, bool visited [], std::vector<Top*> g
 		int link_top_index = graph.at( top_index )->links.at( i )->top->index;
 
 		// Проверяем, посещали ли мы эту вершину за всё время
-		if ( !visited[ link_top_index ] )
-			no_cycles = topological_sort_visit( link_top_index, visited, graph, sorted_graph, history ) && no_cycles;
+		if ( visited[ link_top_index ] == 0 )
+		{
+			if (!topological_sort_visit( link_top_index, visited, graph, sorted_graph ))
+				return false;
+		}
 
-		// Проверяем на цикличность: появлялась ли эта вершина в истории текущей рекурсии
-		else if ( std::find( history.begin( ), history.end( ), link_top_index ) != history.end( ) )
+		// Проверяем на цикличность: появлялась ли вершина в истории текущей рекурсии
+		else if ( visited[ link_top_index ] == 1 )
 		{
 			std::cout << "Найден цикл: " << graph.at( top_index )->name << " -> " << graph.at( link_top_index )->name << std::endl;
 			return false;
 		}
 	}
 
+	visited[ top_index ] = 2;
 	sorted_graph.push_back( graph.at( top_index ) );
-	return no_cycles;
+	return true;
 }
 
 bool topological_sort( std::vector<Top*> graph, std::vector<Top*>& sorted_graph )
 {
-	// Создаём массив посещённых вершин
-	bool* visited = new bool[ graph.size( ) ];
+	// Создаём массив посещённых вершин (0 - не посещали; 1 - посетили, но не перешли к следующей; 2 - посетили и пошли дальше)
+	int* visited = new int[ graph.size( ) ];
 	for ( int i = 0; i < graph.size( ); i++ )
-		visited[ i ] = false;
+		visited[ i ] = 0;
 
 	// Для каждой непосещённой вершины проходимся по ней и её связям
 	for ( int i = 0; i < graph.size( ); i++ )
-		if ( !visited[ i ] )
-		{
-			// Для выявления циклов будем хранить историю текущей рекурсии
-			std::vector<int> recurse_history;
-
-			if ( !topological_sort_visit( i, visited, graph, sorted_graph, recurse_history ) )
+		if ( visited[ i ] == 0 )
+			if ( !topological_sort_visit( i, visited, graph, sorted_graph ) )
 				return false;
-		}
 
 	std::reverse( sorted_graph.begin( ), sorted_graph.end( ) );
 	return true;
