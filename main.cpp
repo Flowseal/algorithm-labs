@@ -20,85 +20,83 @@ C++20
 #include <iostream>
 #include <fstream>
 #include <Windows.h>
-#include <map>
 #include <string>
 #include <vector>
 #include <sstream>
 
-std::map<int, std::string> indices;
 struct Top;
 struct Link;
 
 struct Top {
 	std::string name;
-	std::vector<Link*> links; // связи, которые выходят из узла
+	std::vector<Link*> links;
+	int index;
 };
 
 struct Link {
-	Top* top;
+	Top* top = nullptr;
 	int time;
 };
 
-bool is_study_exist( std::string study )
-{
-	for ( auto it = indices.begin( ); it != indices.end( ); ++it )
-		if ( it->second == study )
-			return true;
-	return false;
-}
+struct DuoLink {
+	Top* top_from = nullptr;
+	Top* top_to = nullptr;
+	int time;
+};
 
-int study_to_index( std::string study )
+Top* get_top_by_name( std::string name, std::vector<Top*>& vec )
 {
+	// Ищем существующую вершину
+	for ( int i = 0; i < vec.size( ); i++ )
+		if ( vec.at( i )->name == name )
+			return vec.at( i );
+
+	// Если её нет - создаём новую
 	static int next_index = 0;
 
-	for ( auto it = indices.begin( ); it != indices.end( ); ++it )
-		if ( it->second == study )
-			return it->first;
+	Top* top = new Top;
+	top->name = name;
+	top->index = next_index;
 
-	indices.try_emplace( next_index, study );
-	next_index += 1;
-
-	return next_index - 1;
+	vec.push_back( top );
+	next_index++;
+	return top;
 }
 
-std::vector<std::string> split_string( std::string str, std::string delimetr )
+std::vector<std::string> split_string( std::string str, char delimetr )
 {
-	std::string word = "";
-	std::vector<std::string> parts;
+	std::stringstream stream;
+	stream << str;
+	std::string segment;
+	std::vector<std::string> string_parts;
 
-	while ( str.compare( word ) != 0 )
+	while ( std::getline( stream, segment, delimetr ) )
 	{
-		auto index = str.find_first_of( delimetr );
-		word = str.substr( 0, index );
-
-		str = str.substr( index + 1, str.length( ) );
-
-		if ( word.length( ) == 0 ) {
-			continue;
-		}
-
-		parts.push_back( word );
+		string_parts.push_back( segment );
 	}
 
-	return parts;
+	return string_parts;
 }
 
-bool topological_sort_visit( int top_index, bool visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph, std::vector<int>& recurse_history )
+bool topological_sort_visit( int top_index, bool visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph, std::vector<int>& history )
 {
 	bool no_cycles = true;
 	visited[ top_index ] = true;
-	recurse_history.push_back( top_index );
+	history.push_back( top_index );
 
 	for ( int i = 0; i < graph.at( top_index )->links.size( ); i++ )
 	{
-		int link_top_index = study_to_index( graph.at( top_index )->links.at(i)->top->name );
+		// Индекс вершины следующей связи
+		int link_top_index = graph.at( top_index )->links.at( i )->top->index;
 
+		// Проверяем, посещали ли мы эту вершину за всё время
 		if ( !visited[ link_top_index ] )
-			no_cycles = no_cycles && topological_sort_visit( link_top_index, visited, graph, sorted_graph, recurse_history );
+			no_cycles = topological_sort_visit( link_top_index, visited, graph, sorted_graph, history ) && no_cycles;
 
-		else if ( std::find( recurse_history.begin(), recurse_history.end(), link_top_index ) != recurse_history.end() )
+		// Проверяем на цикличность: появлялась ли эта вершина в истории текущей рекурсии
+		else if ( std::find( history.begin( ), history.end( ), link_top_index ) != history.end( ) )
 		{
-			std::cout << "Найден цикл: " << graph.at( top_index )->name << " -> " << graph.at(link_top_index)->name << std::endl;
+			std::cout << "Найден цикл: " << graph.at( top_index )->name << " -> " << graph.at( link_top_index )->name << std::endl;
 			return false;
 		}
 	}
@@ -133,9 +131,9 @@ bool init_graph( std::vector<Top*>& graph, std::ifstream& input )
 {
 	std::string raw_string;
 
-	while ( getline(input, raw_string) )
+	while ( getline( input, raw_string ) )
 	{
-		std::vector<std::string> string_parts = split_string(raw_string, "|");
+		std::vector<std::string> string_parts = split_string( raw_string, '|' );
 
 		if ( string_parts.size( ) != 3 )
 		{
@@ -158,29 +156,17 @@ bool init_graph( std::vector<Top*>& graph, std::ifstream& input )
 		std::string top1_name = string_parts.at( 0 );
 		std::string top2_name = string_parts.at( 2 );
 
-		if ( !is_study_exist( top1_name ) )
-		{
-			Top* top1 = new Top;
-			top1->name = top1_name;
-			graph.push_back( top1 );
-		}
-
-		if ( !is_study_exist( top2_name ) )
-		{
-			Top* top2 = new Top;
-			top2->name = top2_name;
-			graph.push_back( top2 );
-		}
-
-		int top1_index = study_to_index( top1_name );
-		int top2_index = study_to_index( top2_name );
+		Top* top1 = get_top_by_name( top1_name, graph );
+		Top* top2 = get_top_by_name( top2_name, graph );
 
 		Link* link = new Link;
-		link->top = graph.at( top2_index );
+		link->top = top2;
 		link->time = link_time;
 
-		graph.at( top1_index )->links.push_back( link );
+		top1->links.push_back( link );
 	}
+
+	return graph.size( ) > 0;
 }
 
 int main( )
@@ -203,21 +189,89 @@ int main( )
 		return 1;
 	}
 
+	// Создаём список для вершин и ещё один такой же для отсортированных
 	std::vector<Top*> graph;
 	std::vector<Top*> sorted_graph;
 
+	// Читаем input.txt и заполняем список вершинами
 	if ( !init_graph( graph, input ) )
-	{
 		return 1;
-	}
 
+	// Топологическая сортировка
 	if ( !topological_sort( graph, sorted_graph ) )
-	{
 		return 1;
-	}
+
+	std::cout << "Отсортированный список вершин:" << std::endl;
+	output << "Отсортированный список вершин:" << std::endl;
 
 	for ( int i = 0; i < sorted_graph.size( ); i++ )
 	{
 		std::cout << sorted_graph.at( i )->name << std::endl;
+		output << sorted_graph.at( i )->name << std::endl;
 	}
+
+	// Ищем максимальный путь:
+
+	// 1. Создаём список дуг, где i-элемент - путь наибольшей трудоемкости в эту вершину
+	DuoLink** max_paths = new DuoLink *[ sorted_graph.size( ) ];
+	for ( int i = 0; i < sorted_graph.size( ); i++ )
+	{
+		max_paths[ i ] = new DuoLink;
+		max_paths[ i ]->time = 0;
+	}
+
+	// 2. Заполняем список
+	for ( int i = 0; i < sorted_graph.size( ); i++ )
+	{
+		int curr_index = sorted_graph.at( i )->index;
+
+		for ( Link* link : sorted_graph.at( i )->links )
+			if ( max_paths[ curr_index ]->time + link->time > max_paths[ link->top->index ]->time )
+			{
+				max_paths[ link->top->index ]->time = max_paths[ curr_index ]->time + link->time;
+				max_paths[ link->top->index ]->top_from = sorted_graph.at( i );
+				max_paths[ link->top->index ]->top_to = link->top;
+			}
+	}
+
+	// 3. Ищем вершину, путь в которую наиболее трудоёмкий
+	DuoLink* max_path = new DuoLink;
+	max_path->time = -1;
+
+	for ( int i = 0; i < sorted_graph.size( ); i++ )
+		if ( max_paths[ i ]->time > max_path->time )
+			max_path = max_paths[ i ];
+
+	std::cout << "\nПуть наибольшей трудоемкости: " << max_path->time << " (";
+	output << "\nПуть наибольшей трудоемкости: " << max_path->time << " (";
+
+	std::vector<std::string> path;
+	while ( max_path->top_to != nullptr )
+	{
+		std::string top_from = max_path->top_from->name;
+		std::string top_to = max_path->top_to->name;
+
+		path.push_back( top_to );
+		max_path = max_paths[max_path->top_from->index];
+
+		if ( max_path->top_to == nullptr )
+			path.push_back( top_from );
+	}
+
+	std::reverse( path.begin(), path.end() );
+
+	for ( int i = 0; i < path.size( ); i++ )
+	{
+		std::cout << path.at(i);
+		output << path.at( i );
+
+		if ( i + 1 != path.size( ) )
+		{
+			std::cout << " -> ";
+			output << " -> ";
+		}
+	}
+
+	std::cout << ")" << std::endl;
+	output << ")" << std::endl;
 }
