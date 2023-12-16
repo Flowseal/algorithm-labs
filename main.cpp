@@ -1,23 +1,14 @@
 /*
-19. Проект научно-технической  программы  задан  с  помощью
-ориентированного графа. Вершина графа соответствует отдельному
-исследованию,  а  дуги   показывают   очередность   выполнения
-исследований  (каждое  исследование  может  начаться  не ранее
-окончания  предшествующих   исследований).   Продолжительность
-каждого исследования известна. Требуется:
-   1) проверить граф на отсутствие циклов;
-   2) используя топологическую сортировку, найти путь наибольшей
-	  трудоемкости (10).
-   Путем считается  последовательность  работ,  которые должны
-выполняться друг за  другом.  Трудоемкость  пути  -  суммарная
-продолжительность работ на этом пути (10).
-
-Формат ввода:
-Вершина 1|Стоимость|Вершина 2
+14. В файле задана  строка  из  целых  чисел  через  пробел.
+Реализовать следующие функции:
+   1) построение АВЛ-дерева;
+   2) добавление нового элемента с перестроением дерева;
+   3) изменение значения заданного элемента с перестроением дерева;
+   4) выдачу на экран АВЛ-дерева (11).
 
 Выполнил: Вещев Артём ПС-21
 IDE: Visual Studio 2022
-C++20
+C++14
 */
 
 #include <iostream>
@@ -27,146 +18,126 @@ C++20
 #include <vector>
 #include <sstream>
 
-struct Top;
-struct Link;
-
-struct Top {
-	std::string name;
-	std::vector<Link*> links;
-	int index;
+struct Node {
+	int value;
+	Node* left = nullptr;
+	Node* right = nullptr;
+	int height = 1;
 };
 
-struct Link {
-	Top* top = nullptr;
-	int time;
-};
-
-struct DuoLink {
-	Top* top_from = nullptr;
-	Top* top_to = nullptr;
-	int time;
-};
-
-Top* get_top_by_name( std::string name, std::vector<Top*>& vec )
-{
-	// Ищем существующую вершину
-	for ( int i = 0; i < vec.size( ); i++ )
-		if ( vec.at( i )->name == name )
-			return vec.at( i );
-
-	// Если её нет - создаём новую
-	static int next_index = 0;
-
-	Top* top = new Top;
-	top->name = name;
-	top->index = next_index;
-
-	vec.push_back( top );
-	next_index++;
-	return top;
+int get_height( Node* node ) {
+	return node == nullptr ? 0 : node->height;
 }
 
-std::vector<std::string> split_string( std::string str, char delimetr )
-{
-	std::stringstream stream;
-	stream << str;
-	std::string segment;
-	std::vector<std::string> string_parts;
+// Height(right) - Height(left)
+int balance_factor( Node* node ) {
+	return node == nullptr ? 0 : (get_height( node->right ) - get_height( node->left ));
+}
 
-	while ( std::getline( stream, segment, delimetr ) )
-	{
-		string_parts.push_back( segment );
+Node* rotate_right_right( Node* z )
+{
+	Node* y = z->right;
+	Node* T2 = y->left;
+
+	y->left = z;
+	z->right = T2;
+
+	y->height = max( get_height( y->left ),
+		get_height( y->right ) ) + 1;
+
+	z->height = max( get_height( z->left ),
+		get_height( z->right ) ) + 1;
+
+	return y;
+}
+
+
+Node* rotate_left_left( Node* z )
+{
+	Node* y = z->left;
+	Node* T3 = y->right;
+
+	y->right = z;
+	z->left = T3;
+
+	y->height = max( get_height( y->left ),
+		get_height( y->right ) ) + 1;
+
+	z->height = max( get_height( z->left ),
+		get_height( z->right ) ) + 1;
+
+	return y;
+}
+
+Node* rotate_left_right( Node* z ) {
+	z->left = rotate_right_right( z->left );
+	return rotate_left_left( z );
+}
+
+Node* rotate_right_left( Node* z ) {
+	z->right = rotate_left_left( z->right );
+	return rotate_right_right( z );
+}
+
+Node* insert_into_tree( Node* node, int value ) {
+	// Нашли место для вставки
+	if ( node == nullptr ) {
+		Node* new_node = new Node;
+		new_node->value = value;
+		// std::cout << "Вставил " << value << std::endl;
+		return new_node;
 	}
 
-	return string_parts;
-}
+	// Выбираем, куда пойдём:
+	if ( value > node->value )
+		node->right = insert_into_tree( node->right, value );
+	else if ( value < node->value )
+		node->left = insert_into_tree( node->left, value );
 
-bool topological_sort_visit( int top_index, int visited [], std::vector<Top*> graph, std::vector<Top*>& sorted_graph )
-{
-	visited[ top_index ] = 1;
+	// В этой части кода мы оказались только после вставки нового узла
 
-	for ( int i = 0; i < graph.at( top_index )->links.size( ); i++ )
+	// Обновляем высоту
+	node->height = max( get_height( node->left ), get_height( node->right ) );
+	node->height += 1;
+
+	// std::cout << "Значение: " << node->value << ". Баланс фактор: " << balance_factor( node ) << ". ";
+
+	// Балансируем дерево в случае необходимости
+	if ( balance_factor( node ) > 1 && value > node->right->value )
 	{
-		// Индекс вершины следующей связи
-		int link_top_index = graph.at( top_index )->links.at( i )->top->index;
-
-		// Проверяем, посещали ли мы эту вершину за всё время
-		if ( visited[ link_top_index ] == 0 )
-		{
-			if (!topological_sort_visit( link_top_index, visited, graph, sorted_graph ))
-				return false;
-		}
-
-		// Проверяем на цикличность: появлялась ли вершина в истории текущей рекурсии
-		else if ( visited[ link_top_index ] == 1 )
-		{
-			std::cout << "Найден цикл: " << graph.at( top_index )->name << " -> " << graph.at( link_top_index )->name << std::endl;
-			return false;
-		}
+		// std::cout << "RR" << std::endl;
+		return rotate_right_right( node );
 	}
-
-	visited[ top_index ] = 2;
-	sorted_graph.push_back( graph.at( top_index ) );
-	return true;
-}
-
-bool topological_sort( std::vector<Top*> graph, std::vector<Top*>& sorted_graph )
-{
-	// Создаём массив посещённых вершин (0 - не посещали; 1 - посетили, но не перешли к следующей; 2 - посетили и пошли дальше)
-	int* visited = new int[ graph.size( ) ];
-	for ( int i = 0; i < graph.size( ); i++ )
-		visited[ i ] = 0;
-
-	// Для каждой непосещённой вершины проходимся по ней и её связям
-	for ( int i = 0; i < graph.size( ); i++ )
-		if ( visited[ i ] == 0 )
-			if ( !topological_sort_visit( i, visited, graph, sorted_graph ) )
-				return false;
-
-	std::reverse( sorted_graph.begin( ), sorted_graph.end( ) );
-	return true;
-}
-
-bool init_graph( std::vector<Top*>& graph, std::ifstream& input )
-{
-	std::string raw_string;
-
-	while ( getline( input, raw_string ) )
+	else if ( balance_factor( node ) > 1 && value < node->right->value )
 	{
-		std::vector<std::string> string_parts = split_string( raw_string, '|' );
-
-		if ( string_parts.size( ) != 3 )
-		{
-			std::cout << "Ошибка в строке: " << raw_string << ". Найдено более или менее двух делиметров '|'." << std::endl;
-			return false;
-		}
-
-		int link_time = 0;
-		std::string raw_link_time = string_parts.at( 1 );
-		raw_link_time.erase( std::remove_if( raw_link_time.begin( ), raw_link_time.end( ), isspace ), raw_link_time.end( ) );
-
-		try {
-			link_time = std::stoi( raw_link_time );
-		}
-		catch ( ... ) {
-			std::cout << "Ошибка при конвертации " << string_parts.at( 1 ) << " в число!" << std::endl;
-			return false;
-		}
-
-		std::string top1_name = string_parts.at( 0 );
-		std::string top2_name = string_parts.at( 2 );
-
-		Top* top1 = get_top_by_name( top1_name, graph );
-		Top* top2 = get_top_by_name( top2_name, graph );
-
-		Link* link = new Link;
-		link->top = top2;
-		link->time = link_time;
-
-		top1->links.push_back( link );
+		// std::cout << "RL" << std::endl;
+		return rotate_right_left( node );
 	}
+	else if ( balance_factor( node ) < -1 && value < node->left->value )
+	{
+		// std::cout << "LL" << std::endl;
+		return rotate_left_left( node );
+	}
+	else if ( balance_factor( node ) < -1 && value > node->left->value )
+	{
+		// std::cout << "LR" << std::endl;
+		return rotate_left_right( node );
+	}
+	else {
+		// std::cout << "Без баланса" << std::endl;
+		return node;
+	}
+}
 
-	return graph.size( ) > 0;
+void result_tree( Node* node, std::ofstream& output, int dots_count = 0 )
+{
+	if ( node == nullptr ) return;
+
+	std::cout << std::string( dots_count, '.' ) << node->value << std::endl;
+	output << std::string( dots_count, '.' ) << node->value << std::endl;
+
+	result_tree( node->left, output, dots_count + 1 );
+	result_tree( node->right, output, dots_count + 1 );
 }
 
 int main( )
@@ -189,89 +160,84 @@ int main( )
 		return 1;
 	}
 
-	// Создаём список для вершин и ещё один такой же для отсортированных
-	std::vector<Top*> graph;
-	std::vector<Top*> sorted_graph;
+	std::vector<int> values {};
+	int number;
 
-	// Читаем input.txt и заполняем список вершинами
-	if ( !init_graph( graph, input ) )
-		return 1;
-
-	// Топологическая сортировка
-	if ( !topological_sort( graph, sorted_graph ) )
-		return 1;
-
-	std::cout << "Отсортированный список вершин:" << std::endl;
-	output << "Отсортированный список вершин:" << std::endl;
-
-	for ( int i = 0; i < sorted_graph.size( ); i++ )
+	while ( input >> number )
 	{
-		std::cout << sorted_graph.at( i )->name << std::endl;
-		output << sorted_graph.at( i )->name << std::endl;
-	}
-
-	// Ищем максимальный путь:
-
-	// 1. Создаём список дуг, где i-элемент - путь наибольшей трудоемкости в эту вершину
-	DuoLink** max_paths = new DuoLink *[ sorted_graph.size( ) ];
-	for ( int i = 0; i < sorted_graph.size( ); i++ )
-	{
-		max_paths[ i ] = new DuoLink;
-		max_paths[ i ]->time = 0;
-	}
-
-	// 2. Заполняем список
-	for ( int i = 0; i < sorted_graph.size( ); i++ )
-	{
-		int curr_index = sorted_graph.at( i )->index;
-
-		for ( Link* link : sorted_graph.at( i )->links )
-			if ( max_paths[ curr_index ]->time + link->time > max_paths[ link->top->index ]->time )
-			{
-				max_paths[ link->top->index ]->time = max_paths[ curr_index ]->time + link->time;
-				max_paths[ link->top->index ]->top_from = sorted_graph.at( i );
-				max_paths[ link->top->index ]->top_to = link->top;
-			}
-	}
-
-	// 3. Ищем вершину, путь в которую наиболее трудоёмкий
-	DuoLink* max_path = new DuoLink;
-	max_path->time = -1;
-
-	for ( int i = 0; i < sorted_graph.size( ); i++ )
-		if ( max_paths[ i ]->time > max_path->time )
-			max_path = max_paths[ i ];
-
-	std::cout << "\nПуть наибольшей трудоемкости: " << max_path->time << " (";
-	output << "\nПуть наибольшей трудоемкости: " << max_path->time << " (";
-
-	std::vector<std::string> path;
-	while ( max_path->top_to != nullptr )
-	{
-		std::string top_from = max_path->top_from->name;
-		std::string top_to = max_path->top_to->name;
-
-		path.push_back( top_to );
-		max_path = max_paths[max_path->top_from->index];
-
-		if ( max_path->top_to == nullptr )
-			path.push_back( top_from );
-	}
-
-	std::reverse( path.begin(), path.end() );
-
-	for ( int i = 0; i < path.size( ); i++ )
-	{
-		std::cout << path.at(i);
-		output << path.at( i );
-
-		if ( i + 1 != path.size( ) )
+		if ( std::find( values.begin( ), values.end( ), number ) != values.end( ) )
 		{
-			std::cout << " -> ";
-			output << " -> ";
+			std::cout << "Встретил повтор: " << number << ". Пропускаю." << std::endl;
+			continue;
 		}
+
+		values.push_back( number );
 	}
 
-	std::cout << ")" << std::endl;
-	output << ")" << std::endl;
+	std::string input_str;
+	while ( input_str != "0" )
+	{
+		std::cout << "1. Добавить значение" << std::endl;
+		std::cout << "2. Изменить значнеие" << std::endl;
+		std::cout << "3. Вывести дерево" << std::endl;
+		std::cout << "0. Выход" << std::endl;
+		std::cout << "> ";
+		std::cin >> input_str;
+
+		if ( input_str == "1" ) {
+			std::cout << "Введите значение: ";
+			
+			int new_value;
+			std::cin >> new_value;
+			
+			if ( std::find( values.begin( ), values.end( ), new_value ) != values.end( ) )
+			{
+				std::cout << "Данное значение уже существует!" << std::endl << std::endl;
+				continue;
+			}
+
+			values.push_back( new_value );
+			std::cout << "Значение " << new_value << " успешно добавлено!" << std::endl;
+			output << "Значение " << new_value << " успешно добавлено!" << std::endl;
+		}
+		else if ( input_str == "2" ) {
+			std::cout << "Введите старое значение: ";
+			int old_value;
+			std::cin >> old_value;
+
+			auto iter = std::find( values.begin( ), values.end( ), old_value );
+			if ( iter == values.end( ) )
+			{
+				std::cout << "Значение не найдено" << std::endl << std::endl;
+				continue;
+			}
+
+			std::cout << "Введите новое значение: ";
+			int new_value;
+			std::cin >> new_value;
+
+			if ( std::find( values.begin( ), values.end( ), new_value ) != values.end( ) )
+			{
+				std::cout << "Значение уже существует!" << std::endl << std::endl;
+				continue;
+			}
+
+			*iter = new_value;
+			std::cout << "Значение " << old_value << " успешно заменено на " << new_value << std::endl;
+			output << "Значение " << old_value << " успешно заменено на " << new_value << std::endl;
+		}
+		else if ( input_str == "3" ) {
+			Node* root = nullptr;
+
+			for ( int i = 0; i < values.size(); i++ )
+				root = insert_into_tree( root, values.at( i ) );
+
+			result_tree( root, output );
+		}
+
+		std::cout << std::endl;
+		output << std::endl;
+	}
+
+	return 0;
 }
